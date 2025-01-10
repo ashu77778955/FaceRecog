@@ -1,101 +1,95 @@
-# Face Recognition System
+# Real-Time Face Recognition System
 
-This repository contains two Python scripts designed for a simple face recognition system using the DeepFace library.
-
-## Overview
-
-1. **Face_Encodings.py**:
-   - Captures live images from a webcam.
-   - Extracts face embeddings (numerical representations of facial features) and saves them along with corresponding names to a `.pkl` file (`KF.pkl`).
-
-2. **FaceRecog.py**:
-   - Performs real-time face recognition using embeddings stored in `KF.pkl`.
-   - Labels recognized faces or marks them as "Unknown" based on similarity.
+This project is a real-time face recognition system that uses a webcam to capture face embeddings, stores them in a database, and recognizes faces during live video feed. The system is built using OpenCV, NumPy, and the DeepFace library for deep learning-based face representation.
 
 ---
 
-## Installation
+## Features
 
-### Required Modules
+- **Real-Time Face Embedding Capture**: Allows users to save face embeddings with a specific name for recognition later.
+- **Face Recognition**: Matches live faces with saved embeddings and displays the identified names in real-time.
+- **Interactive Modes**:
+  - Add new face embeddings to the database.
+  - Perform live face recognition.
+- **Face Embedding Storage**: All embeddings and their associated names are stored in a `.pkl` file for future use.
 
-Install the necessary Python modules using the following commands:
+---
 
-1. **DeepFace**:
-   ```bash
-   pip install deepface
-   ```
+## Requirements
 
-2. **OpenCV**:
-   ```bash
-   pip install opencv-python
-   pip install opencv-contrib-python
-   ```
+- Python 3.8 or higher
+- Libraries:
+  ```bash
+  pip install opencv-python numpy deepface
+  ```
 
-3. **NumPy**:
-   ```bash
-   pip install numpy
-   ```
+---
 
-4. **Pickle**:
-   No need to install this, as it is part of Python's standard library.
+## How It Works
+
+1. **Initialize Program**:
+   Upon running, choose between:
+   - Extracting embeddings of a new face (`New`)
+   - Performing attendance/recognition (`Attendance`)
+
+2. **Face Embedding Extraction**:
+   - Capture a face using the webcam by pressing `S`.
+   - Provide a name for the face.
+   - Save embeddings for future recognition.
+
+3. **Face Recognition**:
+   - Detects faces in real-time using the webcam.
+   - Matches detected faces with stored embeddings using cosine similarity.
+   - Displays the matched name or "Unknown" for unmatched faces.
+
+4. **Quit Program**:
+   - Press `Q` at any point to exit.
+
+---
+
+## File Structure
+
+- **`FaceRecog.py`**: The main Python script for face embedding extraction and recognition.
+- **`KF.pkl`**: The generated file to store face embeddings and names.
 
 ---
 
 ## Usage
 
-### 1. Face Embedding Script (Face_Encodings.py)
-
-This script allows you to capture images and save face embeddings.
-
-#### Steps:
-1. Run `Face_Encodings.py`:
+1. Clone the repository:
    ```bash
-   python Face_Encodings.py
+   git clone <repo-url>
+   cd <repo-folder>
    ```
-2. Follow the instructions in the terminal:
-   - **Press `s`**: Capture and save a face.
-   - Enter the person's name when prompted.
-   - The script will save the face embedding and name to `KF.pkl`.
-   - **Press `q`**: Quit the script.
 
----
-
-### 2. Face Recognition Script (FaceRecog.py)
-
-This script performs real-time face recognition using the embeddings saved in `KF.pkl`.
-
-#### Steps:
-1. Ensure that `KF.pkl` exists and contains face embeddings.
-2. Run `FaceRecog.py`:
+2. Run the script:
    ```bash
    python FaceRecog.py
    ```
-3. The script will:
-   - Capture frames from the webcam.
-   - Detect faces and compare them with stored embeddings.
-   - Display recognized names or "Unknown" on the live video feed.
-   - **Press `q`**: Quit the script.
+
+3. Follow on-screen instructions to:
+   - Add new faces.
+   - Recognize faces in real-time.
 
 ---
 
-## Troubleshooting
+## Key Dependencies
 
-- **cv2.imshow not working**:
-  - Ensure OpenCV is installed with GUI support (`opencv-python`).
-  - Verify that your environment supports window display (e.g., avoid headless servers).
-
-- **Performance Issues**:
-  - The recognition script skips 4 out of 5 frames (`frame_count % 5`) to enhance speed. Adjust this value for better accuracy or performance.
+- **OpenCV**: For video capture and face detection.
+- **DeepFace**: For deep learning-based face embedding extraction.
+- **NumPy**: For embedding similarity computation.
 
 ---
 
 ## Future Improvements
 
-- Add multi-threading for faster processing.
-- Improve face detection by integrating advanced models like MTCNN.
-- Support for multiple model backends (e.g., `Facenet`, `OpenFace`).
+- Add support for more face recognition models.
+- Optimize performance for large embedding databases.
+- Enhance GUI for easier interaction.
 
 ---
 
-Feel free to contribute or open issues for further enhancements!
+## License
+
+This project is open source and available under the [MIT License](LICENSE).
 
