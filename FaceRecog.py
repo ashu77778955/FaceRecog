@@ -123,7 +123,7 @@ def recognition():
 
             try:
                 # Get emotion recognition using DeepFace
-                emotion_result = DeepFace.analyze(img_path=face_image_resized, actions=['emotion'], enforce_detection=False)
+                emotion_result = DeepFace.analyze(img_path=face_image, actions=['emotion'], enforce_detection=False)
                 dominant_emotion = emotion_result[0]['dominant_emotion']
                 real_time_embedding = DeepFace.represent(img_path=face_image, model_name="VGG-Face", enforce_detection=False)[0]["embedding"]
                 similarities = cosine_similarity_vectorized(real_time_embedding, known_face_encodings)
