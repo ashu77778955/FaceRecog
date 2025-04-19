@@ -190,9 +190,18 @@ class FaceRecognitionApp(QWidget):
         filename = os.path.join(ATTENDANCE_DIR, f"Attendance_{datetime.now().strftime('%Y-%m-%d')}.csv")
         with open(filename, 'w', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow(["Name", "Roll Number", "Time"])
-            for name, (roll, time) in marked_names.items():
-                writer.writerow([name, roll, time])
+            writer.writerow(["Roll Number", "Name", "Status", "Time"])
+
+            all_students = list(zip(self.known_rolls, self.known_names))
+            present_students = {name: (roll, time) for name, (roll, time) in marked_names.items()}
+
+            for roll, name in all_students:
+                if name in present_students:
+                    _, time = present_students[name]
+                    writer.writerow([roll, name, "Present", time])
+                else:
+                    writer.writerow([roll, name, "Absent", ""])
+
         print(f"[SAVED] Attendance -> {filename}")
 
     def load_embeddings(self):
