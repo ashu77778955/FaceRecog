@@ -20,7 +20,7 @@ os.makedirs(PHOTOS_DIR, exist_ok=True)
 os.makedirs(os.path.dirname(EMBEDDINGS_FILE), exist_ok=True)
 os.makedirs(ATTENDANCE_DIR, exist_ok=True)
 
-marked_names = {}
+marked_names = {}  # {name: (roll, time)}
 
 # =================== Helper ===================
 def cosine_similarity_vectorized(embedding, known_embeddings):
@@ -35,7 +35,7 @@ class FaceRecognitionApp(QWidget):
         self.setWindowTitle("✨ Face Recognition Attendance System ✨")
         self.setStyleSheet("background-color: #1e1e1e; color: white;")
         self.video_capture = cv2.VideoCapture(0)
-        self.known_encodings, self.known_names = self.load_embeddings()
+        self.known_encodings, self.known_names, self.known_rolls = self.load_embeddings()
 
         self.init_ui()
         self.timer = QTimer()
@@ -51,6 +51,10 @@ class FaceRecognitionApp(QWidget):
         self.name_input = QLineEdit()
         self.name_input.setPlaceholderText("Enter name here")
         self.name_input.setStyleSheet("padding: 5px; font-size: 16px;")
+
+        self.roll_input = QLineEdit()
+        self.roll_input.setPlaceholderText("Enter roll number here")
+        self.roll_input.setStyleSheet("padding: 5px; font-size: 16px;")
 
         self.status_label = QLabel("👋 Welcome! Choose an action.")
         self.status_label.setFont(QFont("Arial", 12))
@@ -76,6 +80,7 @@ class FaceRecognitionApp(QWidget):
         vbox = QVBoxLayout()
         vbox.addWidget(self.video_label)
         vbox.addWidget(self.name_input)
+        vbox.addWidget(self.roll_input)
         vbox.addLayout(hbox)
         vbox.addWidget(self.status_label)
 
@@ -100,11 +105,12 @@ class FaceRecognitionApp(QWidget):
 
     def add_new_face_mode(self):
         name = self.name_input.text().strip()
-        if not name:
-            self.status_label.setText("⚠️ Please enter a name first!")
+        roll = self.roll_input.text().strip()
+        if not name or not roll:
+            self.status_label.setText("⚠️ Please enter both name and roll number!")
             return
         self.mode = "add"
-        self.status_label.setText(f"📸 Adding new face: {name}")
+        self.status_label.setText(f"📸 Adding new face: {name} (Roll: {roll})")
         self.timer.start(30)
 
     def attendance_mode(self):
@@ -117,15 +123,21 @@ class FaceRecognitionApp(QWidget):
 
     def capture_face(self, frame):
         name = self.name_input.text().strip()
-        path = os.path.join(PHOTOS_DIR, f"{name}.jpg")
+        roll = self.roll_input.text().strip()
+        if not roll:
+            self.status_label.setText("⚠️ Please enter a roll number!")
+            return
+
+        path = os.path.join(PHOTOS_DIR, f"{name}_{roll}.jpg")
         cv2.imwrite(path, frame)
 
         try:
             embedding = DeepFace.represent(img_path=path, model_name="VGG-Face", enforce_detection=False)[0]['embedding']
             self.known_encodings.append(embedding)
             self.known_names.append(name)
-            self.save_embeddings(self.known_encodings, self.known_names)
-            self.status_label.setText(f"✅ Face of {name} saved!")
+            self.known_rolls.append(roll)
+            self.save_embeddings(self.known_encodings, self.known_names, self.known_rolls)
+            self.status_label.setText(f"✅ Face of {name} (Roll: {roll}) saved!")
             self.timer.stop()
         except Exception as e:
             self.status_label.setText(f"❌ Error capturing face: {e}")
@@ -145,22 +157,27 @@ class FaceRecognitionApp(QWidget):
                 sims = cosine_similarity_vectorized(emb, np.array(self.known_encodings))
                 idx = np.argmax(sims)
                 sim_score = sims[idx]
-                name = self.known_names[idx] if sim_score > self.threshold else "Unknown"
+                if sim_score > self.threshold:
+                    name = self.known_names[idx]
+                    roll = self.known_rolls[idx]
+                else:
+                    name = "Unknown"
+                    roll = None
 
-                if name != "Unknown":
-                    self.mark_attendance(name)
+                if name != "Unknown" and roll is not None:
+                    self.mark_attendance(name, roll)
 
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
                 cv2.putText(frame, name, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36, 255, 12), 2)
             except Exception as e:
                 print(f"Recognition error: {e}")
 
-    def mark_attendance(self, name):
+    def mark_attendance(self, name, roll):
         if name not in marked_names:
             now = datetime.now().strftime("%H:%M:%S")
-            marked_names[name] = now
-            print(f"[ATTENDANCE] {name} marked at {now}")
-            self.status_label.setText(f"🎉 {name} marked present at {now}")
+            marked_names[name] = (roll, now)
+            print(f"[ATTENDANCE] {name} (Roll: {roll}) marked at {now}")
+            self.status_label.setText(f"🎉 {name} (Roll: {roll}) marked at {now}")
 
     def save_attendance_clicked(self):
         if not marked_names:
@@ -173,20 +190,20 @@ class FaceRecognitionApp(QWidget):
         filename = os.path.join(ATTENDANCE_DIR, f"Attendance_{datetime.now().strftime('%Y-%m-%d')}.csv")
         with open(filename, 'w', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow(["Name", "Time"])
-            for name, time in marked_names.items():
-                writer.writerow([name, time])
+            writer.writerow(["Name", "Roll Number", "Time"])
+            for name, (roll, time) in marked_names.items():
+                writer.writerow([name, roll, time])
         print(f"[SAVED] Attendance -> {filename}")
 
     def load_embeddings(self):
         if os.path.exists(EMBEDDINGS_FILE):
             with open(EMBEDDINGS_FILE, 'rb') as f:
                 return pickle.load(f)
-        return [], []
+        return [], [], []
 
-    def save_embeddings(self, encodings, names):
+    def save_embeddings(self, encodings, names, rolls):
         with open(EMBEDDINGS_FILE, 'wb') as f:
-            pickle.dump((encodings, names), f)
+            pickle.dump((encodings, names, rolls), f)
 
     def closeEvent(self, event):
         self.video_capture.release()
